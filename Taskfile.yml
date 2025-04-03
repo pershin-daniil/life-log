@@ -7,6 +7,7 @@ vars:
     sh: echo "`pwd`/bin/tools"
 
   DEV_TOOLS: |
+    github.com/daixiang0/gci@v0.13.6
 
 tasks:
   default:
@@ -16,6 +17,20 @@ tasks:
   tidy:
     - echo "- Tidy..."
     - go mod tidy
+
+  dev-tools:install:
+    - echo "- Dev Tools Install..."
+    - |
+      export GOBIN="{{.TOOLS_DIR}}"
+      {{range $i, $tool := .DEV_TOOLS | trim | splitLines -}}
+        go install {{$tool}}
+      {{end}}
+    - task: dev-tools:act-install
+    - ls -l "{{.TOOLS_DIR}}"
+ 
+  dev-tools:act-install:
+    - curl --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/nektos/act/master/install.sh | bash
+    - mv ./bin/act ./bin/tools/act
 
   act:push:
     - |
