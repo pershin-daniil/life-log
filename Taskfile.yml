@@ -1,0 +1,28 @@
+version: '3'
+
+silent: true
+
+vars:
+  TOOLS_DIR:
+    sh: echo "`pwd`/bin/tools"
+
+  DEV_TOOLS: |
+
+tasks:
+  default:
+    cmds:
+      - task: tidy
+
+  tidy:
+    - echo "- Tidy..."
+    - go mod tidy
+
+  act:push:
+    - |
+      export PATH="${PATH}:{{.TOOLS_DIR}}"
+      act push
+
+  act:pull-request:
+    - |
+      export PATH="${PATH}:{{.TOOLS_DIR}}"
+      act pull_request
