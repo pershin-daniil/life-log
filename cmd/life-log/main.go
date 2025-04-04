@@ -1,3 +1,4 @@
+// Package main initializes and starts the life-log application.
 package main
 
 import (
@@ -25,6 +26,7 @@ func run() error {
 		select {
 		case <-ctx.Done():
 			slog.Info("Context done...")
+
 			return nil
 		case t := <-ticker.C:
 			slog.Info("msg", "tick", t.Second())
