@@ -46,19 +46,5 @@ tasks:
       {{range $i, $tool := .DEV_TOOLS | trim | splitLines -}}
         go install {{$tool}}
       {{end}}
-    - task: dev-tools:act-install
     - ls -l "{{.TOOLS_DIR}}"
  
-  dev-tools:act-install:
-    - curl --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/nektos/act/master/install.sh | bash
-    - mv ./bin/act ./bin/tools/act
-
-  act:push:
-    - |
-      export PATH="${PATH}:{{.TOOLS_DIR}}"
-      act push
-
-  act:pull-request:
-    - |
-      export PATH="${PATH}:{{.TOOLS_DIR}}"
-      act pull_request

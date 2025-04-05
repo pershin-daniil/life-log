@@ -3,10 +3,15 @@ package main
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"log/slog"
+	"os"
 	"os/signal"
-	"syscall"
-	"time"
+
+	"golang.org/x/sync/errgroup"
+
+	"github.com/pershin-daniil/life-log/internal/server"
 )
 
 func main() {
@@ -16,20 +21,21 @@ func main() {
 }
 
 func run() error {
-	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	ctx, cancel := signal.NotifyContext(context.Background())
 	defer cancel()
 
-	ticker := time.NewTicker(5 * time.Second)
-	defer ticker.Stop()
+	lg := slog.New(slog.NewTextHandler(os.Stderr, nil))
 
-	for {
-		select {
-		case <-ctx.Done():
-			slog.Info("Context done...")
+	srv := server.New(lg)
 
-			return nil
-		case t := <-ticker.C:
-			slog.Info("msg", "tick", t.Second())
-		}
+	eg, ctx := errgroup.WithContext(ctx)
+
+	// Run servers.
+	eg.Go(func() error { return srv.Run(ctx) })
+
+	if err := eg.Wait(); err != nil && !errors.Is(err, context.Canceled) {
+		return fmt.Errorf("run: %v", err)
 	}
+
+	return nil
 }

@@ -1,0 +1,30 @@
+services:
+  nginx:
+    image: nginx:stable
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx:/etc/nginx/conf.d:ro
+    depends_on:
+      - life-log
+
+  life-log:
+    image: ghcr.io/${GHCR_USERNAME}/life-log:${VERSION_TAG}
+    expose:
+      - "8080"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+    depends_on:
+      - db
+
+  db:
+    image: postgres:17.4
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
