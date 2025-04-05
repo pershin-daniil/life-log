@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -26,9 +27,10 @@ type Server struct {
 
 // New returns a new Server with default routing.
 func New(lg *slog.Logger) *Server {
+	version := os.Getenv("VERSION_TAG")
 	router := chi.NewRouter()
 	router.Get("/", func(w http.ResponseWriter, _ *http.Request) {
-		if _, err := w.Write([]byte("Hello, World!")); err != nil {
+		if _, err := fmt.Fprintf(w, "Hello, World!\nversion=%v", version); err != nil {
 			return
 		}
 	})

@@ -9,6 +9,9 @@ env:
   GO_VERSION: 1.24.0
   GOLANGCI_LINT_VERSION: v2.0.2
 
+  IMAGE_ID_RAW: ${{ github.repository }}
+  TAG: ${{ github.event.release.tag_name || github.ref_name }}
+
 jobs:
   lint:
     runs-on: ubuntu-latest
@@ -42,10 +45,6 @@ jobs:
     needs: [lint, test]
     runs-on: ubuntu-latest
     steps:
-      - name: Setup Go environment
-        uses: actions/setup-go@v5.4.0
-        with:
-          go-version: ${{env.GO_VERSION}}
       - name: Checkout
         uses: actions/checkout@v4.2.2
       - name: Log in GitHub Container Registry
@@ -56,16 +55,54 @@ jobs:
           password: ${{secrets.GHCR_TOKEN}}
       - name: Build and Push Docker image
         run: |
-          IMAGE_ID=ghcr.io/${{github.repository}}
+          IMAGE_ID=ghcr.io/$IMAGE_ID_RAW
           IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
-          TAG=${{github.event.release.tag_name || github.ref_name}}
           docker build -t $IMAGE_ID:$TAG -f ./deploy/Dockerfile .
           docker push $IMAGE_ID:$TAG
 
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    env:
+      TAG: ${{ github.event.release.tag_name || github.ref_name }}
+      IMAGE_ID_RAW: ${{ github.repository }}
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Copy deploy directory to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          source: deploy
+          target: /home/${{ secrets.SERVER_USER }}/life-log
+
+      - name: Generate .env file
+        run: |
+          set -e
+
+          [ -z "${{ secrets.GHCR_USERNAME }}" ] && echo "GHCR_USERNAME is not set" && exit 1
+          [ -z "${{ secrets.DATABASE_URL }}" ] && echo "DATABASE_URL is not set" && exit 1
+          [ -z "${{ secrets.POSTGRES_USER }}" ] && echo "POSTGRES_USER is not set" && exit 1
+          [ -z "${{ secrets.POSTGRES_PASSWORD }}" ] && echo "POSTGRES_PASSWORD is not set" && exit 1
+          [ -z "${{ secrets.POSTGRES_DB }}" ] && echo "POSTGRES_DB is not set" && exit 1
+
+          echo "GHCR_USERNAME=${{ secrets.GHCR_USERNAME }}" > .env
+          echo "VERSION_TAG=$TAG" >> .env
+          echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" >> .env
+          echo "POSTGRES_USER=${{ secrets.POSTGRES_USER }}" >> .env
+          echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" >> .env
+          echo "POSTGRES_DB=${{ secrets.POSTGRES_DB }}" >> .env
+      - name: Copy deploy files to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          source: |
+            .env
+          target: /home/${{ secrets.SERVER_USER }}/life-log
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.2.2
         with:
@@ -73,11 +110,11 @@ jobs:
           username: ${{secrets.SERVER_USER}}
           key: ${{secrets.SERVER_SSH_KEY}}
           script: |
-            cd ~/life-log
-            echo "VERSION_TAG=${{github.event.release.tag_name || github.ref_name}}" > .env
-            docker compose pull life-log
-            docker compose up -d --no-deps life-log
+            IMAGE_ID=ghcr.io/$IMAGE_ID_RAW
+            IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
+            echo "Deploying image: $IMAGE_ID:$TAG"
 
-
-
+            docker compose -f ./life-log/deploy/docker-compose.yml --env-file /home/${{secrets.SERVER_USER}}/life-log/.env pull
+            
+            docker compose -f ./life-log/deploy/docker-compose.yml --env-file /home/${{secrets.SERVER_USER}}/life-log/.env up -d --no-deps life-log
 
