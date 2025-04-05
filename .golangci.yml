@@ -1,8 +1,34 @@
 version: "2"
 linters: 
-  default: all
-  disable:
-    - mnd
+  default: none
+  enable:
+    - asasalint
+    - asciicheck
+    - bidichk
+    - bodyclose
+    - contextcheck
+    - errcheck
+    - forbidigo
+    - ginkgolinter
+    - goconst
+    - gocritic
+    - gocyclo
+    - gosec
+    - govet
+    - ineffassign
+    - lll
+    - misspell
+    - noctx
+    - nolintlint
+    - prealloc
+    - revive
+    - staticcheck
+    - testifylint
+    - testpackage
+    - thelper
+    - tparallel
+    - unconvert
+    - unparam
   settings:
     forbidigo:
       forbid:
