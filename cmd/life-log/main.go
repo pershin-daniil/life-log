@@ -8,9 +8,11 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"syscall"
 
 	"golang.org/x/sync/errgroup"
 
+	"github.com/pershin-daniil/life-log/internal/config"
 	"github.com/pershin-daniil/life-log/internal/server"
 )
 
@@ -21,12 +23,19 @@ func main() {
 }
 
 func run() error {
-	ctx, cancel := signal.NotifyContext(context.Background())
+	// Создаем контекст, который будет отменен при получении сигнала SIGINT или SIGTERM
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
 	lg := slog.New(slog.NewTextHandler(os.Stderr, nil))
 
-	srv := server.New(lg)
+	// Load configuration
+	cfg, err := config.Load(lg)
+	if err != nil {
+		return fmt.Errorf("load config: %v", err)
+	}
+
+	srv := server.New(lg, cfg)
 
 	eg, ctx := errgroup.WithContext(ctx)
 

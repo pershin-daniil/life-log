@@ -18,35 +18,56 @@ tasks:
       - task: test
 
   tidy:
-    - echo "- Tidy..."
-    - go mod tidy
+    desc: updates and tidies dependencies
+    cmds:
+      - echo "- Tidy..."
+      - go mod tidy
 
   fmt:
     desc: runs golangci fmt
     cmds:
       - echo "- Format..."
-      - |
-        "{{.TOOLS_DIR}}"/golangci-lint fmt -v ./...
+      - '"{{.TOOLS_DIR}}"/golangci-lint fmt -v ./...'
 
   lint:
     desc: runs golangci lint
     cmds:
       - echo "- Lint..."
-      - |
-        "{{.TOOLS_DIR}}"/golangci-lint run -v ./...
+      - '"{{.TOOLS_DIR}}"/golangci-lint run -v ./...'
 
   test:
-    - echo "- Test..."
-    - go test --race ./...
-    - |
-      "{{.TOOLS_DIR}}"/ginkgo -v ./...
+    desc: runs all tests
+    cmds:
+      - echo "- Test..."
+      - go test --race ./...
+      - '"{{.TOOLS_DIR}}"/ginkgo -v ./...'
+
+  dev:
+    desc: runs server locally with dev settings
+    cmds:
+      - echo "- Starting development server..."
+      - cmd: test -f config.yaml || cp config.yaml.example config.yaml
+        silent: true
+      - echo "  Using VERSION_TAG=dev"
+      - echo "  Server will be available at http://localhost:8081"
+      - echo "  Press Ctrl+C to stop the server"
+      - echo "  =========================================="
+      - VERSION_TAG=dev go run cmd/life-log/main.go
+
+  dev-check:
+    desc: runs checks and then starts development server
+    cmds:
+      - task: default
+      - task: dev
 
   dev-tools:install:
-    - echo "- Dev Tools Install..."
-    - |
-      export GOBIN="{{.TOOLS_DIR}}"
-      {{range $i, $tool := .DEV_TOOLS | trim | splitLines -}}
-        go install {{$tool}}
-      {{end}}
-    - ls -l "{{.TOOLS_DIR}}"
+    desc: installs development tools
+    cmds:
+      - echo "- Dev Tools Install..."
+      - |
+        export GOBIN="{{.TOOLS_DIR}}"
+        {{range $i, $tool := .DEV_TOOLS | trim | splitLines -}}
+          go install {{$tool}}
+        {{end}}
+      - ls -l "{{.TOOLS_DIR}}"
  

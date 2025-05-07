@@ -1,8 +1,8 @@
 server {
-    listen 80;
+    listen ${NGINX_PORT};
     location / {
-        proxy_pass http://life-log:8080;
+        proxy_pass http://life-log:${LIFE_LOG_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
     }
-}
+} 
