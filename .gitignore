@@ -26,3 +26,13 @@ go.work.sum
 
 # dev tools
 bin/tools
+.vscode
+
+# Cursor IDE settings
+.cursor/
+
+# Nginx generated config
+deploy/nginx/default.conf
+
+# Configuration files
+config.yaml

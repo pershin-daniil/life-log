@@ -1,0 +1,21 @@
+# Example configuration file for Life-Log
+# Copy this file to config.yaml and customize it for your needs
+
+# Server configuration
+server:
+  # HTTP server port
+  port: 8080
+  
+  # Timeout in seconds for graceful shutdown
+  shutdown_timeout_seconds: 3s
+  
+  # Timeout in seconds for reading request headers
+  read_header_timeout_seconds: 1s
+
+# Note: 
+# Secrets and environment-specific values are loaded from environment variables:
+# - VERSION_TAG - application version
+# - DATABASE_URL - database connection string
+# - POSTGRES_USER - PostgreSQL username
+# - POSTGRES_PASSWORD - PostgreSQL password
+# - POSTGRES_DB - PostgreSQL database name 

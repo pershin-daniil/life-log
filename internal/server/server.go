@@ -7,30 +7,28 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"golang.org/x/sync/errgroup"
+
+	"github.com/pershin-daniil/life-log/internal/config"
 )
 
-const (
-	module          = "server"
-	shutdownTimeout = 3 * time.Second
-)
+const module = "server"
 
 // Server wraps an http.Server instance.
 type Server struct {
-	lg  *slog.Logger
-	srv *http.Server
+	lg              *slog.Logger
+	srv             *http.Server
+	shutdownTimeout time.Duration
 }
 
 // New returns a new Server with default routing.
-func New(lg *slog.Logger) *Server {
-	version := os.Getenv("VERSION_TAG")
+func New(lg *slog.Logger, cfg *config.Config) *Server {
 	router := chi.NewRouter()
 	router.Get("/", func(w http.ResponseWriter, _ *http.Request) {
-		if _, err := fmt.Fprintf(w, "Hello, World!\nversion=%v", version); err != nil {
+		if _, err := fmt.Fprintf(w, "Hello, World!\nversion=%v", cfg.Secrets.VersionTag); err != nil {
 			return
 		}
 	})
@@ -38,10 +36,11 @@ func New(lg *slog.Logger) *Server {
 	return &Server{
 		lg: lg.With("module", module),
 		srv: &http.Server{
-			Addr:              ":8080",
+			Addr:              cfg.ServerAddr(),
 			Handler:           router,
-			ReadHeaderTimeout: time.Second,
+			ReadHeaderTimeout: cfg.Server.ReadHeaderTimeout,
 		},
+		shutdownTimeout: cfg.Server.ShutdownTimeout,
 	}
 }
 
@@ -53,10 +52,10 @@ func (s *Server) Run(ctx context.Context) error {
 	eg.Go(func() error {
 		<-ctx.Done()
 
-		gfCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+		gfCtx, cancel := context.WithTimeout(context.Background(), s.shutdownTimeout)
 		defer cancel()
 
-		s.lg.Info("graceful shutdown")
+		s.lg.Info("graceful shutdown", "timeout", s.shutdownTimeout)
 		return s.srv.Shutdown(gfCtx) //nolint:contextcheck // graceful shutdown with new context
 	})
 

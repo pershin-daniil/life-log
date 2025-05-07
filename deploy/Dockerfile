@@ -4,6 +4,7 @@ COPY . .
 RUN go build -o life_log ./cmd/life-log
 
 FROM alpine:latest
-COPY --from=builder /app/life_log /app
+WORKDIR /app
+COPY --from=builder /app/life_log /app/life_log
 EXPOSE 8080
-ENTRYPOINT ["/app"]
+ENTRYPOINT ["/app/life_log"]

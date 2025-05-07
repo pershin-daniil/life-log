@@ -94,6 +94,16 @@ jobs:
           echo "POSTGRES_USER=${{ secrets.POSTGRES_USER }}" >> .env
           echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" >> .env
           echo "POSTGRES_DB=${{ secrets.POSTGRES_DB }}" >> .env
+      
+      - name: Copy config file to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          source: config.yaml.example
+          target: /home/${{ secrets.SERVER_USER }}/life-log
+          
       - name: Copy deploy files to server
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -113,6 +123,12 @@ jobs:
             IMAGE_ID=ghcr.io/$IMAGE_ID_RAW
             IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
             echo "Deploying image: $IMAGE_ID:$TAG"
+            
+            # Create config.yaml from example if it doesn't exist
+            if [ ! -f "/home/${{secrets.SERVER_USER}}/life-log/config.yaml" ]; then
+              cp /home/${{secrets.SERVER_USER}}/life-log/config.yaml.example /home/${{secrets.SERVER_USER}}/life-log/config.yaml
+              echo "Created config.yaml from example"
+            fi
 
             docker compose -f ./life-log/deploy/docker-compose.yml --env-file /home/${{secrets.SERVER_USER}}/life-log/.env pull
             
